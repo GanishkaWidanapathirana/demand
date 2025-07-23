@@ -16,9 +16,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
 
 class PredictionInput(BaseModel):
-    fruit: str
-    cash_on_hand: int
-    town: str
+    name: str
+    cash_on_hand: float
 
 def get_user_id(token: str = Header(...)):
     try:
@@ -26,6 +25,11 @@ def get_user_id(token: str = Header(...)):
         return int(payload.get("sub"))
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+def get_user_town(user_id: int = Depends(get_user_id), db: Session = Depends(database.get_db)) -> str:
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    return user.town  # assuming town is a field in user table
+
 def convert_numpy_types(obj):
     if isinstance(obj, dict):
         return {k: convert_numpy_types(v) for k, v in obj.items()}
@@ -49,17 +53,18 @@ def get_user_foods(user_id: int = Depends(get_user_id), db: Session = Depends(da
     return db.query(models.Food).filter(models.Food.owner_id == user_id).all()
 
 @router.post("/prediction")
-async def get_final(data: PredictionInput):
-    # Access request body values directly
-    fruit = data.fruit
+async def get_final(
+    data: PredictionInput,
+    town: str = Depends(get_user_town)
+):
+    fruit = data.name.lower()
     cash = data.cash_on_hand
-    town = data.town
 
     print("Fruit:", fruit)
     print("Cash on Hand:", cash)
     print("Town:", town)
 
     result = get_final_output(fruit, cash, town)
-    result = convert_numpy_types(result)  # Convert NumPy types to Python-native types
+    result = convert_numpy_types(result)
 
     return {"result": result}

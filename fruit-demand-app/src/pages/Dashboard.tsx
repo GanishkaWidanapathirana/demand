@@ -221,13 +221,14 @@ export default function Dashboard() {
                     <button
                       onClick={async () => {
                         setIsLoading(true);
+                        const token = localStorage.getItem("authToken"); // or use your exact key
                         try {
-                          const res = await fetch("http://localhost:8000/insights", {
+                          const res = await fetch("http://localhost:8000/foods/prediction", {
                             method: "POST",
-                            headers: { "Content-Type": "application/json" },
+                            headers: { "Content-Type": "application/json", "token": `${token}`,},
                             body: JSON.stringify({
                               name: selectedFruit?.name,
-                              cash: cashInput,
+                              cash_on_hand: cashInput,
                             }),
                           });
 

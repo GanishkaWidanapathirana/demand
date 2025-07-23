@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp,  Upload, Zap,  Target, ArrowRight, Play, CheckCircle } from 'lucide-react';
+import { TrendingUp,  Upload, Zap,  Target, ArrowRight, Play, CheckCircle, ClipboardList } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function FruitDemandLanding() {
@@ -16,7 +16,7 @@ export default function FruitDemandLanding() {
   }, []);
 
   const features = [
-    { icon: Upload, title: "Smart Data Entry", desc: "Manual input with intelligent validation" },
+    { icon: ClipboardList, title: "Inventory Entry", desc: "Easily manage and validate items" },
     { icon: TrendingUp, title: "Demand Forecasting", desc: "ML-powered prediction algorithms" },
     { icon: Target, title: "Price Optimization", desc: "Maximize profits with data insights" }
   ];
