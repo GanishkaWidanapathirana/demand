@@ -32,3 +32,6 @@ beautifulsoup4
 
 # Optional (if you use pathlib-based paths or want OS-safe handling)
 # pathlib  # Not needed to install; part of standard library
+
+matplotlib
+seaborn

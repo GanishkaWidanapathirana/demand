@@ -18,6 +18,14 @@ export default function Dashboard() {
   const [insightImages, setInsightImages] = useState<string[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Optional: titles for the 3 graphs
+  const imageTitles = [
+    "Inventory: Units Buy",
+    "Demand Over Time",
+    "Optimal Prices by Product"
+  ];
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
@@ -187,7 +195,6 @@ export default function Dashboard() {
               ))
             )}
           </div>
-
             {showModal && (
               <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
                 <div className="w-full max-w-3xl bg-[#1f2937] text-white rounded-xl p-6 shadow-2xl relative">
@@ -208,62 +215,97 @@ export default function Dashboard() {
                     Insights for {selectedFruit?.name}
                   </h2>
 
-                  <input
-                    type="number"
-                    placeholder="Enter hand on cash amount"
-                    value={cashInput}
-                    onChange={(e) => setCashInput(e.target.value)}
-                    className="w-full bg-gray-800 text-white placeholder-white/60 border border-white/20 p-2 rounded mb-6 focus:outline-none"
-                  />
+                  {insightImages.length === 3 ? (
+                    <div className="flex flex-col items-center space-y-4">
+                      <h3 className="text-lg font-semibold mb-2 text-center">
+                        {imageTitles[currentImageIndex]}
+                      </h3>
 
-                  {/* Submit button with loading */}
-                  <div className="flex justify-center mb-6">
-                    <button
-                      onClick={async () => {
-                        setIsLoading(true);
-                        const token = localStorage.getItem("authToken"); // or use your exact key
-                        try {
-                          const res = await fetch("http://localhost:8000/foods/prediction", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json", "token": `${token}`,},
-                            body: JSON.stringify({
-                              name: selectedFruit?.name,
-                              cash_on_hand: cashInput,
-                            }),
-                          });
+                      <img
+                        src={`data:image/png;base64,${insightImages[currentImageIndex]}`}
+                        alt={`Insight ${currentImageIndex + 1}`}
+                        className="w-full rounded-lg shadow-md"
+                      />
 
-                          const data = await res.json();
-                          setInsightImages(data.images || []);
-                        } catch (error) {
-                          console.error("Failed to fetch insights", error);
-                          alert("Something went wrong");
-                        } finally {
-                          setIsLoading(false);
-                        }
-                      }}
-                      disabled={isLoading}
-                      className={`bg-gradient-to-r from-emerald-400 to-green-500 text-white px-8 py-2 rounded-lg font-semibold shadow-lg transition-all duration-300 hover:from-emerald-500 hover:to-green-600 disabled:opacity-60 disabled:cursor-wait`}
-                    >
-                      {isLoading ? "Loading..." : "Submit"}
-                    </button>
-                  </div>
+                      {/* Image Navigation Controls */}
+                      <div className="flex items-center justify-center space-x-4 mt-4">
+                        <button
+                          onClick={() => setCurrentImageIndex((prev) => Math.max(0, prev - 1))}
+                          disabled={currentImageIndex === 0}
+                          className="bg-gradient-to-r from-emerald-400 to-green-500 text-white px-6 py-2 rounded-lg font-semibold shadow-lg transition-all duration-300 hover:from-emerald-500 hover:to-green-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          Prev
+                        </button>
 
-      {/* Insight Images */}
-      {insightImages.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {insightImages.map((url, idx) => (
-            <img
-              key={idx}
-              src={url}
-              alt={`Insight ${idx + 1}`}
-              className="rounded shadow"
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-)}
+                        <span className="text-sm font-medium text-white px-2">
+                          {currentImageIndex + 1} / {insightImages.length}
+                        </span>
+
+                        <button
+                          onClick={() =>
+                            setCurrentImageIndex((prev) => Math.min(insightImages.length - 1, prev + 1))
+                          }
+                          disabled={currentImageIndex === insightImages.length - 1}
+                          className="bg-gradient-to-r from-emerald-400 to-green-500 text-white px-6 py-2 rounded-lg font-semibold shadow-lg transition-all duration-300 hover:from-emerald-500 hover:to-green-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Input and Submit remain the same */}
+                      <input
+                        type="number"
+                        placeholder="Enter hand on cash amount"
+                        value={cashInput}
+                        onChange={(e) => setCashInput(e.target.value)}
+                        className="w-full bg-gray-800 text-white placeholder-white/60 border border-white/20 p-2 rounded mb-6 focus:outline-none"
+                      />
+
+                      <div className="flex justify-center mb-6">
+                        <button
+                          onClick={async () => {
+                            setIsLoading(true);
+                            const token = localStorage.getItem("authToken");
+                            try {
+                              const res = await fetch("http://localhost:8000/foods/prediction", {
+                                method: "POST",
+                                headers: {
+                                  "Content-Type": "application/json",
+                                  token: `${token}`,
+                                },
+                                body: JSON.stringify({
+                                  name: selectedFruit?.name,
+                                  cash_on_hand: cashInput,
+                                }),
+                              });
+
+                              const data = await res.json();
+                              setInsightImages([
+                                data.graphs.inventory_units_buy,
+                                data.graphs.demand_over_time,
+                                data.graphs.optimal_prices,
+                              ]);
+                              setCurrentImageIndex(0); // reset to first image
+                            } catch (error) {
+                              console.error("Failed to fetch insights", error);
+                              alert("Something went wrong");
+                            } finally {
+                              setIsLoading(false);
+                            }
+                          }}
+                          disabled={isLoading}
+                          className={`bg-gradient-to-r from-emerald-400 to-green-500 text-white px-8 py-2 rounded-lg font-semibold shadow-lg transition-all duration-300 hover:from-emerald-500 hover:to-green-600 disabled:opacity-60 disabled:cursor-wait`}
+                        >
+                          {isLoading ? "Loading..." : "Submit"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
         </div>
       )}
     </div>

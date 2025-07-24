@@ -72,21 +72,21 @@ export default function FruitDemandLanding() {
           <div className={`transition-all duration-1000 delay-300 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>
             <div className="inline-flex items-center bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-8 border border-white/20">
               <Zap className="w-4 h-4 mr-2 text-yellow-400" />
-              <span className="text-sm">AI-Powered Demand Forecasting</span>
+              <span className="text-sm">Smart Demand, Inventory, and Pricing for Cost-Efficient Growth</span>
             </div>
             <h1 className="text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 leading-tight">
               <span className="bg-gradient-to-r from-emerald-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Predict
+                Optimize
               </span>
               <br />
-              <span className="text-white">Fruit Demand</span>
+              <span className="text-white">Demand, Inventory & Pricing</span>
               <br />
               <span className="bg-gradient-to-r from-pink-400 to-orange-400 bg-clip-text text-transparent">
                 Like Magic
               </span>
             </h1>
             <p className="text-lg md:text-xl lg:text-2xl text-gray-300 mb-8 lg:mb-12 max-w-3xl mx-auto leading-relaxed">
-              Transform your fruit business with AI-powered demand forecasting. Upload your sales data and get accurate predictions that boost profits by up to 45%.
+              Supercharge your FMCG business with AI! Just upload your sales data to unlock smart demand forecasts, optimized inventory, and dynamic pricing—all in one. Cut costs, boost efficiency, and grow profits by up to 45% with data-driven precision.
             </p>
           </div>
 
