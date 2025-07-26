@@ -20,7 +20,7 @@ import joblib
 import requests
 from bs4 import BeautifulSoup
 
-main_path = fr"D:\GitHub\New folder\demand\backend\app\resources"
+main_path = fr"E:\Project\demand\backend\app\resources"
 
 def extract_min_value(value):
     if pd.isna(value):
