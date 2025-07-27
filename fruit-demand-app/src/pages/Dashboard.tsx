@@ -99,6 +99,18 @@ export default function Dashboard() {
       setShowModal(true);
     }
   };
+  // Helper function to get date for each period starting from tomorrow
+  const getDateForPeriod = (periodIndex: number) => {
+    const today = new Date();
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + periodIndex); // Add period number to today's date
+
+    return targetDate.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   const fetchInsightData = async (fruit: Fruit, insightType: InsightType, cashOnHand: string) => {
     setIsLoading(true);
@@ -379,8 +391,6 @@ export default function Dashboard() {
                             </div>
                           </div>
                         )}
-
-                        {/* Show inventory table for inventory type */}
                         {currentInsightType === "inventory" && inventoryData && (
                           <div className="w-full">
                             <h3 className="text-lg font-semibold mb-3 text-center">Inventory Recommendations</h3>
@@ -388,7 +398,7 @@ export default function Dashboard() {
                               <table className="w-full">
                                 <thead className="bg-gray-700">
                                   <tr>
-                                    <th className="px-2 py-2 text-left text-xs font-semibold">Period</th>
+                                    <th className="px-2 py-2 text-left text-xs font-semibold">Date</th>
                                     <th className="px-2 py-2 text-right text-xs font-semibold">Units</th>
                                     <th className="px-2 py-2 text-right text-xs font-semibold">Cash (Rs.)</th>
                                     <th className="px-2 py-2 text-center text-xs font-semibold">Status</th>
@@ -397,7 +407,12 @@ export default function Dashboard() {
                                 <tbody>
                                   {Object.entries(inventoryData).map(([period, data], index) => (
                                     <tr key={index} className={index % 2 === 0 ? "bg-gray-800" : "bg-gray-750"}>
-                                      <td className="px-2 py-2 text-xs">Period {period}</td>
+                                      <td className="px-2 py-2 text-xs">
+                                        <div>
+                                          <div className="font-medium">{getDateForPeriod(parseInt(period))}</div>
+                                          <div className="text-gray-400 text-xs">Period {period}</div>
+                                        </div>
+                                      </td>
                                       <td className="px-2 py-2 text-xs text-right font-mono">
                                         {data.units_buy}
                                       </td>
@@ -405,11 +420,10 @@ export default function Dashboard() {
                                         {data.cash_on_hand.toFixed(2)}
                                       </td>
                                       <td className="px-2 py-2 text-xs text-center">
-                                        <span className={`px-1 py-0.5 rounded text-xs font-medium ${
-                                          data.status === "Necessary" 
-                                            ? "bg-green-600 text-green-100" 
+                                        <span className={`px-1 py-0.5 rounded text-xs font-medium ${data.status === "Necessary"
+                                            ? "bg-green-600 text-green-100"
                                             : "bg-red-600 text-red-100"
-                                        }`}>
+                                          }`}>
                                           {data.status}
                                         </span>
                                       </td>

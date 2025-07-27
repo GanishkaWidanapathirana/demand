@@ -50,7 +50,7 @@ export default function Login() {
         onSubmit={handleSubmit(onSubmit)}
         className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 space-y-5"
       >
-        <h1 className="text-3xl font-bold text-center text-purple-800">Fruit Demand Tool</h1>
+        <h1 className="text-3xl font-bold text-center text-purple-800">Fruitlytics Tool</h1>
         <p className="text-center text-gray-500">Sign in to your account</p>
 
         <div>

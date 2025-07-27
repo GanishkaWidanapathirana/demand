@@ -34,7 +34,7 @@ def extract_min_value(value):
     return None
 
 def get_fruit_expire_data():
-  df = pd.read_csv(fr'{main_path}\fruit_storage_data.csv')
+  df = pd.read_csv(fr"{main_path}\fruit_storage_data.csv")
   df["Room Temperature (Days)"] = df["Room Temperature"].apply(extract_min_value)
   df["Refrigerated (Days)"] = df["Refrigerated"].apply(extract_min_value)
   df["Frozen (Months)"] = df["Frozen"].apply(extract_min_value)
@@ -60,7 +60,7 @@ fruits = {'apple': 0, 'mango': 1, 'orange': 2, 'pineapple': 3, 'woodapple': 4, '
 demand_fruits = {'cranberry': 0, 'apple': 1, 'banana': 2, 'mango': 3, 'pineapple': 4, 'avacado': 5, 'tomato': 6}
 
 fruit_price_model = joblib.load(fr"{main_path}\model.pkl")
-demand_model = joblib.load(fr"{main_path}\demand_prediction_model_cpi.pkl")
+demand_model = joblib.load(fr"{main_path}\demand_prediction_model_cpi_sl.pkl")
 
 API_KEY = '5050aa1af8fc46e0a1c112033250907'  # Replace with your actual key
 LOCATION = 'German'
@@ -88,8 +88,6 @@ def get_wheather_data(type_ , no_of_days):
           'pressure': hourly_data['pressure_mb'],
           'dew_point': hourly_data['dewpoint_c'],
           'clouds_all': hourly_data['cloud'],
-          'weather_main':condition['code'],            # numeric weather code
-          'weather_description': weather_description.get(condition['text'].lower(), 0)
         }
         print(day_info)
       else:
@@ -230,7 +228,7 @@ def create_data_extraction(shops):
   print(df)
   df['name'] = df['name'].str.lower()
   price_stats_df = df.groupby('name')['price'].agg(['min', 'max']).reset_index()
-  price_stats_df.to_csv(f'{main_path}/price_stats_df.csv', index=False)
+  price_stats_df.to_csv(fr'{main_path}\price_stats_df.csv', index=False)
   return price_stats_df
 
 def get_competitive_mini_max(fruit,town = "Piliyandala"):
@@ -250,7 +248,7 @@ def scale_output(inputs):
 
 from keras.models import load_model
 # Make sure scale_output is imported before loading
-model = load_model(fr'{main_path}/price_optimiser_model.keras', custom_objects={'scale_output': scale_output})
+model = load_model(fr'{main_path}\price_optimiser_model.keras', custom_objects={'scale_output': scale_output})
 
 def get_optimal_price_predictions(fruit,custom_min,custom_max,demands,model):
   global scaler
@@ -270,8 +268,6 @@ def get_optimal_price_predictions(fruit,custom_min,custom_max,demands,model):
     'wind_speed': features['wind_speed'],
     'wind_deg': features['wind_deg'],
     'clouds_all': features['clouds_all'],
-    'weather_main': features['weather_main'],
-    'weather_description': features['weather_description'],
     'Product': demand_fruits[fruit],
     'cpi':120.8,
     'demand': demands[i]
@@ -292,7 +288,7 @@ def get_final_optimal_prices(fruit,demands,model,town):
     if product['min'] >= product['max']:
       product['min'] = product['max']/2
     optimal_price = get_optimal_price_predictions(fruit,product['min'],product['max'],demands,model)
-    optimal_prices[product['name']] = optimal_price
+    optimal_prices[product['name']] = float(optimal_price)
   return optimal_prices
 
 def get_final_output(fruit , cash_on_hand,town):
