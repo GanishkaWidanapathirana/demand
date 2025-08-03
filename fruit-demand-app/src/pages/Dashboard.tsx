@@ -325,17 +325,20 @@ export default function Dashboard() {
                   </h2>
 
                   {/* Show image if we have insight data */}
-                  {insightImages.length > 0 ? (
+                  {insightImages.length > 0 || currentInsightType === "price" ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Image Column */}
-                      <div className="flex flex-col items-center">
-                        <img
-                          src={`data:image/png;base64,${insightImages[0]}`}
-                          alt={`${currentInsightType} insight`}
-                          className="w-full max-w-md rounded-lg shadow-md"
-                        />
-                      </div>
-                      
+                      {/* Show image only if NOT 'price' */}
+                      {insightImages.length > 0 && currentInsightType !== "price" && (
+                        <div className="flex flex-col items-center">
+                          <img
+                            src={`data:image/png;base64,${insightImages[0]}`}
+                            alt={`${currentInsightType} insight`}
+                            className="w-full max-w-md rounded-lg shadow-md"
+                          />
+                        </div>
+                      )}
+
                       {/* Table Column */}
                       <div className="flex flex-col">
                         {/* Show optimal prices table for price type */}
