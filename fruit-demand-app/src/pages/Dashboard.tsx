@@ -26,6 +26,44 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentInsightType, setCurrentInsightType] = useState<InsightType | null>(null);
 
+   // New states for product type selection
+  const [selectedProductType, setSelectedProductType] = useState<string>("");
+  const [showProductTypeSelection, setShowProductTypeSelection] = useState(false);
+
+  // Product types mapping for each fruit
+  const productTypes: Record<string, string[]> = {
+    apple: [
+      "apple juice",
+      "apple milkshake",
+      "apple milkshake with ice cream",
+      "apple juice with ice cream"
+    ],
+    banana: [
+      "banana juice",
+      "banana milkshake",
+      "banana milkshake with ice cream",
+      "banana juice with ice cream"
+    ],
+    mango: [
+      "mango juice",
+      "mango milkshake",
+      "mango milkshake with ice cream",
+      "mango juice with ice cream"
+    ],
+    avocado: [
+      "avocado juice",
+      "avocado milkshake",
+      "avocado milkshake with ice cream",
+      "avocado juice with ice cream"
+    ],
+    pineapple: [
+      "pineapple juice",
+      "pineapple milkshake",
+      "pineapple milkshake with ice cream",
+      "pineapple juice with ice cream"
+    ]
+  };
+
   // Image titles mapping
   const imageTitles = {
     demand: "Demand Over Time",
@@ -37,11 +75,18 @@ export default function Dashboard() {
     localStorage.removeItem("authToken");
     navigate("/");
   };
-
+const allowedFruits = ["apple", "banana", "mango", "avocado", "pineapple"];
  const handleAddFruit = async (e: React.FormEvent) => {
   e.preventDefault();
 
   try {
+    // Normalize user input (trim spaces, lowercase)
+    const normalizedFruit = fruitName.trim().toLowerCase();
+
+    if (!allowedFruits.includes(normalizedFruit)) {
+      alert(`Sorry, the system does not support "${fruitName}". Supported fruits: ${allowedFruits.join(", ")}`);
+      return;
+    }
     const token = localStorage.getItem("authToken"); // or use your exact key
     console.log(token)
 
@@ -91,14 +136,28 @@ export default function Dashboard() {
     setSelectedFruit(fruit);
     setCurrentInsightType(insightType);
     
-    if (insightType === "demand" || insightType === "price") {
-      // For demand and price, fetch data immediately without modal
-      fetchInsightData(fruit, insightType, "0"); // Pass 0 as default cash for these types
+     if (insightType === "demand") {
+      // For demand, fetch data immediately without modal
+      fetchInsightData(fruit, insightType, "0", ""); // Pass empty string for product type
+    } else if (insightType === "price") {
+      // For price, show product type selection first
+      setShowProductTypeSelection(true);
+      setShowModal(true);
     } else if (insightType === "inventory") {
       // For inventory, show modal to get cash input
       setShowModal(true);
     }
   };
+
+    const handleProductTypeSelection = (productType: string) => {
+    setSelectedProductType(productType);
+    setShowProductTypeSelection(false);
+    // Now fetch price data with selected product type
+    if (selectedFruit) {
+      fetchInsightData(selectedFruit, "price", "0", productType);
+    }
+  };
+
   // Helper function to get date for each period starting from tomorrow
   const getDateForPeriod = (periodIndex: number) => {
     const today = new Date();
@@ -112,7 +171,7 @@ export default function Dashboard() {
     });
   };
 
-  const fetchInsightData = async (fruit: Fruit, insightType: InsightType, cashOnHand: string) => {
+  const fetchInsightData = async (fruit: Fruit, insightType: InsightType, cashOnHand: string, productType: string = "") => {
     setIsLoading(true);
     const token = localStorage.getItem("authToken");
     
@@ -131,18 +190,29 @@ export default function Dashboard() {
 
       const data = await res.json();
       
-      // Set the appropriate image based on insight type
-      const imageMap = {
-        demand: data.graphs.demand_over_time,
-        price: data.graphs.optimal_prices,
-        inventory: data.graphs.inventory_units_buy
-      };
-      
-      setInsightImages([imageMap[insightType]]);
+      // Set the appropriate image based on insight type (not for price)
+      if (insightType !== "price") {
+        const imageMap = {
+          demand: data.graphs.demand_over_time,
+          inventory: data.graphs.inventory_units_buy
+        };
+        setInsightImages([imageMap[insightType]]);
+      }
       
       // Set the appropriate data based on insight type
       if (insightType === "price" && data.result?.optimal_price) {
-        setOptimalPrices(data.result.optimal_price);
+        // Filter optimal prices based on selected product type - exact match only
+        if (productType) {
+          const filteredPrices = Object.entries(data.result.optimal_price)
+            .filter(([product]) => product.toLowerCase() === productType.toLowerCase())
+            .reduce((acc, [product, price]) => {
+              acc[product] = price as number;
+              return acc;
+            }, {} as Record<string, number>);
+          setOptimalPrices(filteredPrices);
+        } else {
+          setOptimalPrices(data.result.optimal_price);
+        }
       } else if (insightType === "demand" && data.result?.demand) {
         setDemandData(data.result.demand);
       } else if (insightType === "inventory" && data.result?.inventory) {
@@ -166,7 +236,7 @@ export default function Dashboard() {
   };
 
   const closeModal = () => {
-    setShowModal(false);
+   setShowModal(false);
     setInsightImages([]);
     setOptimalPrices(null);
     setDemandData(null);
@@ -174,6 +244,8 @@ export default function Dashboard() {
     setCashInput("");
     setCurrentInsightType(null);
     setSelectedFruit(null);
+    setSelectedProductType("");
+    setShowProductTypeSelection(false);
   };
 
   useEffect(() => {
@@ -322,26 +394,40 @@ export default function Dashboard() {
 
                   <h2 className="text-2xl font-bold mb-6 text-center">
                     {currentInsightType && imageTitles[currentInsightType]} for {selectedFruit?.name}
+                    {selectedProductType && ` - ${selectedProductType}`}
                   </h2>
 
-                  {/* Show image if we have insight data */}
-                  {insightImages.length > 0 || currentInsightType === "price" ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {/* Image Column */}
-                      {/* Show image only if NOT 'price' */}
-                      {insightImages.length > 0 && currentInsightType !== "price" && (
-                        <div className="flex flex-col items-center">
-                          <img
-                            src={`data:image/png;base64,${insightImages[0]}`}
-                            alt={`${currentInsightType} insight`}
-                            className="w-full max-w-md rounded-lg shadow-md"
-                          />
-                        </div>
-                      )}
+                  {/* Product Type Selection for Price */}
+                  {showProductTypeSelection && selectedFruit && currentInsightType === "price" && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-4 text-center">Select Product Type</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {productTypes[selectedFruit.name.toLowerCase()]?.map((productType, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleProductTypeSelection(productType)}
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-3 rounded-lg font-semibold text-white hover:from-purple-600 hover:to-pink-600 transition shadow-lg text-sm"
+                          >
+                            {productType}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                      {/* Table Column */}
-                      <div className="flex flex-col">
-                        {/* Show optimal prices table for price type */}
+                  {/* Loading state for price */}
+                  {isLoading && currentInsightType === "price" && !showProductTypeSelection && (
+                    <div className="flex flex-col items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-400"></div>
+                      <p className="mt-4 text-lg font-semibold">Loading price data...</p>
+                    </div>
+                  )}
+
+                  {/* Show centered price table or other insight data */}
+                  {!showProductTypeSelection && !isLoading && (
+                    <div className="flex justify-center">
+                      <div className="w-full max-w-2xl">
+                        {/* Show optimal prices table for price type - centered */}
                         {currentInsightType === "price" && optimalPrices && (
                           <div className="w-full">
                             <h3 className="text-lg font-semibold mb-3 text-center">Optimal Prices</h3>
@@ -368,80 +454,115 @@ export default function Dashboard() {
                           </div>
                         )}
 
-                        {/* Show demand table for demand type */}
-                        {currentInsightType === "demand" && demandData && (
-                          <div className="w-full">
-                            <h3 className="text-lg font-semibold mb-3 text-center">Demand Forecast</h3>
-                            <div className="bg-gray-800 rounded-lg overflow-hidden">
-                              <table className="w-full">
-                                <thead className="bg-gray-700">
-                                  <tr>
-                                    <th className="px-3 py-2 text-left text-xs font-semibold">Period</th>
-                                    <th className="px-3 py-2 text-right text-xs font-semibold">Demand</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {Object.entries(demandData).map(([period, demand], index) => (
-                                    <tr key={index} className={index % 2 === 0 ? "bg-gray-800" : "bg-gray-750"}>
-                                      <td className="px-3 py-2 text-xs">Period {period}</td>
-                                      <td className="px-3 py-2 text-xs text-right font-mono">
-                                        {demand.toFixed(2)}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
+                        {/* Show demand with image and table side by side */}
+                        {currentInsightType === "demand" && (demandData || insightImages.length > 0) && (
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Image Column */}
+                            {insightImages.length > 0 && (
+                              <div className="flex flex-col items-center">
+                                <img
+                                  src={`data:image/png;base64,${insightImages[0]}`}
+                                  alt={`${currentInsightType} insight`}
+                                  className="w-full max-w-md rounded-lg shadow-md"
+                                />
+                              </div>
+                            )}
+
+                            {/* Table Column */}
+                            {demandData && (
+                              <div className="w-full">
+                                <h3 className="text-lg font-semibold mb-3 text-center">Demand Forecast</h3>
+                                <div className="bg-gray-800 rounded-lg overflow-hidden">
+                                  <table className="w-full">
+                                    <thead className="bg-gray-700">
+                                      <tr>
+                                        <th className="px-3 py-2 text-left text-xs font-semibold">Period</th>
+                                        <th className="px-3 py-2 text-right text-xs font-semibold">Demand</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {Object.entries(demandData).map(([period, demand], index) => (
+                                        <tr key={index} className={index % 2 === 0 ? "bg-gray-800" : "bg-gray-750"}>
+                                          <td className="px-3 py-2 text-xs">Period {period}</td>
+                                          <td className="px-3 py-2 text-xs text-right font-mono">
+                                            {demand.toFixed(2)}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
-                        {currentInsightType === "inventory" && inventoryData && (
-                          <div className="w-full">
-                            <h3 className="text-lg font-semibold mb-3 text-center">Inventory Recommendations</h3>
-                            <div className="bg-gray-800 rounded-lg overflow-hidden">
-                              <table className="w-full">
-                                <thead className="bg-gray-700">
-                                  <tr>
-                                    <th className="px-2 py-2 text-left text-xs font-semibold">Date</th>
-                                    <th className="px-2 py-2 text-right text-xs font-semibold">Units</th>
-                                    <th className="px-2 py-2 text-right text-xs font-semibold">Cash (Rs.)</th>
-                                    <th className="px-2 py-2 text-center text-xs font-semibold">Status</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {Object.entries(inventoryData).map(([period, data], index) => (
-                                    <tr key={index} className={index % 2 === 0 ? "bg-gray-800" : "bg-gray-750"}>
-                                      <td className="px-2 py-2 text-xs">
-                                        <div>
-                                          <div className="font-medium">{getDateForPeriod(parseInt(period))}</div>
-                                          <div className="text-gray-400 text-xs">Period {period}</div>
-                                        </div>
-                                      </td>
-                                      <td className="px-2 py-2 text-xs text-right font-mono">
-                                        {data.units_buy}
-                                      </td>
-                                      <td className="px-2 py-2 text-xs text-right font-mono">
-                                        {data.cash_on_hand.toFixed(2)}
-                                      </td>
-                                      <td className="px-2 py-2 text-xs text-center">
-                                        <span className={`px-1 py-0.5 rounded text-xs font-medium ${data.status === "Necessary"
-                                            ? "bg-green-600 text-green-100"
-                                            : "bg-red-600 text-red-100"
-                                          }`}>
-                                          {data.status}
-                                        </span>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
+
+                        {/* Show inventory with image and table side by side */}
+                        {currentInsightType === "inventory" && (inventoryData || insightImages.length > 0) && (
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Image Column */}
+                            {insightImages.length > 0 && (
+                              <div className="flex flex-col items-center">
+                                <img
+                                  src={`data:image/png;base64,${insightImages[0]}`}
+                                  alt={`${currentInsightType} insight`}
+                                  className="w-full max-w-md rounded-lg shadow-md"
+                                />
+                              </div>
+                            )}
+
+                            {/* Table Column */}
+                            {inventoryData && (
+                              <div className="w-full">
+                                <h3 className="text-lg font-semibold mb-3 text-center">Inventory Recommendations</h3>
+                                <div className="bg-gray-800 rounded-lg overflow-hidden">
+                                  <table className="w-full">
+                                    <thead className="bg-gray-700">
+                                      <tr>
+                                        <th className="px-2 py-2 text-left text-xs font-semibold">Date</th>
+                                        <th className="px-2 py-2 text-right text-xs font-semibold">Units</th>
+                                        <th className="px-2 py-2 text-right text-xs font-semibold">Cash (Rs.)</th>
+                                        <th className="px-2 py-2 text-center text-xs font-semibold">Status</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {Object.entries(inventoryData).map(([period, data], index) => (
+                                        <tr key={index} className={index % 2 === 0 ? "bg-gray-800" : "bg-gray-750"}>
+                                          <td className="px-2 py-2 text-xs">
+                                            <div>
+                                              <div className="font-medium">{getDateForPeriod(parseInt(period))}</div>
+                                              <div className="text-gray-400 text-xs">Period {period}</div>
+                                            </div>
+                                          </td>
+                                          <td className="px-2 py-2 text-xs text-right font-mono">
+                                            {data.units_buy}
+                                          </td>
+                                          <td className="px-2 py-2 text-xs text-right font-mono">
+                                            {data.cash_on_hand.toFixed(2)}
+                                          </td>
+                                          <td className="px-2 py-2 text-xs text-center">
+                                            <span className={`px-1 py-0.5 rounded text-xs font-medium ${data.status === "Necessary"
+                                                ? "bg-green-600 text-green-100"
+                                                : "bg-red-600 text-red-100"
+                                              }`}>
+                                              {data.status}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
                     </div>
-                  ) : (
-                    /* Show cash input form for inventory type */
-                    currentInsightType === "inventory" && (
+                  )}
+
+                  {/* Show cash input form for inventory type */}
+                  {currentInsightType === "inventory" && !showProductTypeSelection && !isLoading && !inventoryData && (
                       <>
                         <input
                           type="number"
@@ -459,10 +580,9 @@ export default function Dashboard() {
                           >
                             {isLoading ? "Loading..." : "Submit"}
                           </button>
-                        </div>
+                                                </div>
                       </>
-                    )
-                  )}
+                    )}
                 </div>
               </div>
             )}

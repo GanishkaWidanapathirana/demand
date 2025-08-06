@@ -56,7 +56,7 @@ def get_fruit_expire_data():
   print(new_fruit_data)
   return new_fruit_data
 
-fruits = {'apple': 0, 'mango': 1, 'orange': 2, 'pineapple': 3, 'woodapple': 4, 'watermelon': 5, 'papaya': 6, 'avocado': 7, 'dragonfruit': 8, 'anoda': 9, 'banana': 10}
+fruits = {'apple': 0, 'mango': 1, 'orange': 2, 'pineapple': 3, 'woodapple': 4, 'watermelon': 5, 'papaya': 6, 'avacado': 7, 'dragonfruit': 8, 'anoda': 9, 'banana': 10}
 demand_fruits = {'cranberry': 0, 'apple': 1, 'banana': 2, 'mango': 3, 'pineapple': 4, 'avacado': 5, 'tomato': 6}
 
 fruit_price_model = joblib.load(fr"{main_path}\model.pkl")
@@ -108,8 +108,11 @@ def get_wheather_data(type_ , no_of_days):
   return feature_data
 
 def get_dates(fruit):
-  new_fruit_data = get_fruit_expire_data()
-  no_of_dates = new_fruit_data[fruit]
+  try:
+    new_fruit_data = get_fruit_expire_data()
+    no_of_dates = new_fruit_data[fruit]
+  except:
+    no_of_dates = 3
   return no_of_dates
 
 def get_price_predictions(fruit):
@@ -250,9 +253,71 @@ from keras.models import load_model
 # Make sure scale_output is imported before loading
 model = load_model(fr'{main_path}\price_optimiser_model.keras', custom_objects={'scale_output': scale_output})
 
-def get_optimal_price_predictions(fruit,custom_min,custom_max,demands,model):
+practical_ranges = {
+    'apple juice': (350, 600),
+    'banana juice': (250, 500),
+    'mango juice': (300, 550),
+    'avacado juice': (400, 650),
+    'pineapple juice': (250, 500),
+
+    'apple milkshake': (450, 700),
+    'banana milkshake': (350, 600),
+    'mango milkshake': (400, 650),
+    'avacado milkshake': (500, 750),
+    'pineapple milkshake': (350, 600),
+
+    'apple milkshake with ice cream': (550, 850),
+    'banana milkshake with ice cream': (450, 700),
+    'mango milkshake with ice cream': (500, 800),
+    'avacado milkshake with ice cream': (600, 900),
+    'pineapple milkshake with ice cream': (450, 700),
+
+    'apple juice with ice cream': (500, 800),
+    'banana juice with ice cream': (400, 700),
+    'mango juice with ice cream': (450, 750),
+    'avacado juice with ice cream': (550, 850),
+    'pineapple juice with ice cream': (400, 700)
+}
+products = {'apple juice':1, 'banana juice':2, 'mango juice':3, 'avacado juice':4, 'pineapple juice':5, 'apple milkshake':6, 'banana milkshake':7, 'mango milkshake':8, 'avacado milkshake':9, 'pineapple milkshake':10, 'apple milkshake with ice cream':11, 'banana milkshake with ice cream':12, 'mango milkshake with ice cream':13, 'avacado milkshake with ice cream':14, 'pineapple milkshake with ice cream':15, 'apple juice with ice cream':16, 'banana juice with ice cream':17, 'mango juice with ice cream':18, 'avacado juice with ice cream':19, 'pineapple juice with ice cream':20}
+
+def get_froducts(fruit):
+  filtered = [item for item in products.keys() if re.search(r'\b' + fruit + r'\b', item.lower())]
+  return filtered
+
+def get_practical_min_max(results , selected_products):
+  final_result = []
+  for product in selected_products:
+    product_type = product.split()[1]
+    match = next((item for item in results if item['name'].lower() == product.lower()), None)
+    if match:
+      # if match['min'] < practical_ranges[product_type][0]:
+      #   match['min'] = practical_ranges[product_type][0]
+      # if match['max'] > practical_ranges[product_type][1]:
+      #   match['max'] = practical_ranges[product_type][1]
+      final_result.append(match)
+    else:
+      final_result.append({
+          'name': product,
+          'min': practical_ranges[product][0],
+          'max': practical_ranges[product][1]
+      })
+  return final_result
+
+def get_competitive_mini_max(fruit,town = "Piliyandala"):
+  shops_df = pd.read_csv(fr"{main_path}\Fruits juice shops.csv")
+  filtered_df = shops_df[shops_df['Location'] == town]
+  shop_list = filtered_df['Link'].tolist()
+  price_stats_df = create_data_extraction(shop_list)
+  filtered_df = price_stats_df[price_stats_df['name'].str.contains(fruit, case=False)]
+  result = filtered_df.to_dict(orient='records')
+  selected_products = get_froducts(fruit)
+  results = get_practical_min_max(result , selected_products)
+  print('result',results)
+  return results
+
+def get_optimal_price_predictions(product,custom_min,custom_max,demands,model):
   global scaler
-  dates = get_dates(fruit)
+  dates = 3
   optimal_prices = {}
   i=1
   feature_list = get_wheather_data(1 , 1)
@@ -268,7 +333,7 @@ def get_optimal_price_predictions(fruit,custom_min,custom_max,demands,model):
     'wind_speed': features['wind_speed'],
     'wind_deg': features['wind_deg'],
     'clouds_all': features['clouds_all'],
-    'Product': demand_fruits[fruit],
+    'Product': products[product],
     'cpi':120.8,
     'demand': demands[i]
 }
@@ -279,7 +344,8 @@ def get_optimal_price_predictions(fruit,custom_min,custom_max,demands,model):
     min_input = np.full((X_test.shape[0], 1), custom_min)
     max_input = np.full((X_test.shape[0], 1), custom_max)
     y_pred = model.predict([X_test, min_input, max_input])[0]
-  return y_pred[0]
+    # y_pred = model.predict(X_test)[0]
+  return int(y_pred[0])
 
 def get_final_optimal_prices(fruit,demands,model,town):
   products = get_competitive_mini_max(fruit,town)
@@ -287,7 +353,7 @@ def get_final_optimal_prices(fruit,demands,model,town):
   for product in products:
     if product['min'] >= product['max']:
       product['min'] = product['max']/2
-    optimal_price = get_optimal_price_predictions(fruit,product['min'],product['max'],demands,model)
+    optimal_price = get_optimal_price_predictions(product['name'],product['min'],product['max'],demands,model)
     optimal_prices[product['name']] = float(optimal_price)
   return optimal_prices
 
