@@ -96,7 +96,7 @@ const allowedFruits = ["apple", "banana", "mango", "avocado", "pineapple"];
         "Content-Type": "application/json",
         "token": `${token}`, // 👈 pass token here
       },
-      body: JSON.stringify({ name: fruitName, price }),
+      body: JSON.stringify({ name: fruitName, price:50 }),
     });
 
     if (!res.ok) {
@@ -308,7 +308,7 @@ const allowedFruits = ["apple", "banana", "mango", "avocado", "pineapple"];
             className="w-full p-3 rounded-md bg-white/20 border border-white/30 placeholder-white text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
             required
           />
-          <input
+          {/* <input
             type="number"
             min="0"
             step="0.01"
@@ -317,7 +317,7 @@ const allowedFruits = ["apple", "banana", "mango", "avocado", "pineapple"];
             placeholder="Price (Rs.)"
             className="w-full p-3 rounded-md bg-white/20 border border-white/30 placeholder-white text-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
             required
-          />
+          /> */}
           <button
             type="submit"
             className="w-full py-3 bg-gradient-to-r from-emerald-500 to-blue-600 rounded-full text-white font-semibold hover:from-emerald-400 hover:to-blue-500 transition shadow-lg"
@@ -341,12 +341,12 @@ const allowedFruits = ["apple", "banana", "mango", "avocado", "pineapple"];
                   className="bg-white/10 rounded-lg p-6 flex flex-col justify-between backdrop-blur-md shadow-lg"
                 >
                   <div>
-                    <h3 className="mx-auto text-2xl font-bold bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent mb-2">
-                      {fruit.name}
+                    <h3 className="text-center text-2xl font-bold bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent mb-2">
+                      {fruit.name.toUpperCase()}
                     </h3>
-                    <p className="mx-auto text-white/80 mb-4">
+                    {/* <p className="mx-auto text-white/80 mb-4">
                       Price: Rs. {fruit.price}
-                    </p>
+                    </p> */}
                   </div>
                   
                   {/* Three separate buttons */}
